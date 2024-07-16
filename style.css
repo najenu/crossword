@@ -1,0 +1,72 @@
+* {
+    box-sizing: border-box;
+}
+
+.main-header {
+    margin: 50px 10vw;
+}
+
+#container {
+    display: flex;
+    flex-direction: row;
+}
+
+#grid-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+
+    margin: 5vw 10vw;
+    width: 40vw;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+    flex: 0 1 60px;
+}
+
+.cell {
+    flex: 0 1 60px;
+    border: black 1px solid;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    text-align: center;
+
+    background-color: black;
+
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    padding: 3px 3px 12px 3px;
+}
+
+.active-cell {
+    background-color: white;
+}
+
+.loc-number {
+    font-size: 10px;
+    text-align: left;
+    align-items: start;
+}
+
+.clue-selected-cell {
+    background-color: paleturquoise;
+}
+
+.selected-cell {
+    background-color: turquoise;
+}
+
+h1, .clue {
+    font-family: Optima, sans-serif;
+}
+
+.selected-clue {
+    color: turquoise;
+}
+
