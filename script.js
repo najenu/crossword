@@ -8,61 +8,71 @@ globeMini = {
             loc: 1,
             across: true,
             len: 4,
-            text: `Chowder mollusk`,    
+            text: `Chowder mollusk`, 
+            answer: `clam`   
         },
         {
             loc: 1,
             across: false,
             len: 5,
             text: `Girl in Tchaikovsky's "The Nutcracker"`,
+            answer: `clara`
         },
         {
             loc: 2,
             across: false,
             len: 5,
             text: `Corrective eye surgery`,
+            answer: `lasik`
         },
         {
             loc: 3,
             across: false,
             len: 5,
             text: `Come up, as a topic`,
+            answer: `arise`
         },
         {
             loc: 4,
             across: false,
             len: 4,
             text: `Fit well together`,
+            answer: `mesh`
         },
         {
             loc: 5,
             across: false,
             len: 4,
             text: `Fencing sword`,
+            answer: `foil`
         },
         {   
             loc: 5,
             across: true,
             len: 5,
-            text: `Emergency signal`,    
+            text: `Emergency signal`,
+            answer: `flare`
         },
         {   
             loc: 6,
             across: true,
             len: 5,
-            text: `Desert haven`,    
+            text: `Desert haven`,
+            answer: `oasis`
         },
         {   
             loc: 7,
             across: true,
             len: 5,
-            text: `Luck o' the ___`,    
+            text: `Luck o' the ___`,
+            answer: `irish`
         },
         {   
             loc: 8,
             across: true,
             len: 4,
-            text: `Superior, e.g.`,    
+            text: `Superior, e.g.`,
+            answer: `lake`
         }
     ],
     locations: {
@@ -84,6 +94,7 @@ globeMini = {
  */
 let crossword = null;
 let cluesByIdx = null;
+let answerGrid = null;
 let selectedCell = null;
 let selectedClue = null;
 
@@ -105,12 +116,61 @@ function getCellByIdx(i, j) {
 }
 
 function isCellInClue(i, j, clue) {
-    start = crossword.locations[clue.loc];
+    const start = crossword.locations[clue.loc];
     if (clue.across) {
         return i == start[0] && start[1] <= j && j < start[1] + clue.len;
     } else {
         return j == start[1] && start[0] <= i && i < start[0] + clue.len;
     }
+}
+
+/*
+ * logic for checking correctness
+ * TODO decide how to indicate that everything is correct
+ * TODO decide how to handle incorrect & highlighted
+ * TODO could have a button which clears incorrect letters
+ */
+function isCellEmpty(i, j) {
+    return getCellByIdx(i, j).childNodes[0].textContent === "";
+}
+
+function isCellIncorrect(i, j) {
+    return getCellByIdx(i, j).childNodes[0].textContent !== answerGrid[i][j] && !isCellEmpty(i, j);
+}
+
+
+function onCheckCurrentCell() {
+    if (isCellIncorrect(selectedCell.i, selectedCell.j)) {
+        selectedCell.cell.classList.add("incorrect-cell");
+    }
+}
+
+function onCheckCurrentClue() {
+    i = crossword.locations[selectedClue.loc][0];
+    j = crossword.locations[selectedClue.loc][1];
+
+    for (let k = 0; k < selectedClue.len; k++) {
+        if (isCellIncorrect(i, j)) {
+            getCellByIdx(i,j).classList.add("incorrect-cell");
+        }
+        selectedClue.across ? j++ : i++;
+    }
+}
+
+function onCheckPuzzle(checkOnly) {
+    for (let i = 0; i < crossword.nRows; i++) {
+        for (let j = 0; j < crossword.nCols; j++) {
+            if (answerGrid[i][j]) {
+                if (checkOnly && (isCellIncorrect(i,j) || isCellEmpty(i,j))) {
+                    return false;
+                }
+                if (isCellIncorrect(i,j)) {
+                    getCellByIdx(i,j).classList.add("incorrect-cell");
+                }
+            }
+        }
+    }
+    return true
 }
 
 
@@ -183,11 +243,17 @@ function onEnterLetter(e) {
     let letterDiv = selectedCell.cell.childNodes[0];
     if (e.key.length === 1) { // check if it's a single character
         letterDiv.textContent = e.key.toUpperCase();
+        selectedCell.cell.classList.remove("incorrect-cell");
+        if (onCheckPuzzle(true)) {
+            // TODO why does alert display before letter shows up?
+            window.alert("you win!");
+        }
         advanceCursor();
     } else if (e.key == "Backspace") {
         if (letterDiv.textContent == "") {
             retreatCursor();
         } else {
+            selectedCell.cell.classList.remove("incorrect-cell");
             letterDiv.textContent = "";
         }
     } else if (e.key in arrowKeyDeltas) {
@@ -284,6 +350,15 @@ function preProcessClues() {
         }
     }
 
+    // nRows x nCols grid of nulls
+    answerGrid = Array();
+    for (let i = 0; i < crossword.nRows; i++) {
+        answerGrid.push(Array());
+        for (let j = 0; j < crossword.nCols; j++) {
+            answerGrid[i].push(null);
+        }
+    }
+
     for (const clue of crossword.clues) {
         let start = crossword.locations[clue.loc];
         let i = start[0]; let j = start[1];
@@ -296,6 +371,14 @@ function preProcessClues() {
             }
 
             cluesByIdx[i][j].push(clue);
+
+            if (answerGrid[i][j] && answerGrid[i][j] !== clue.answer[k].toUpperCase()) {
+                console.log(`ERROR: invalid clue ${clue.loc} ${clue.across? "across" : "down"} 
+                            with answer ${clue.answer} conflicts with previous answer ${answerGrid[i][j]} 
+                            at index (${i},${j})`);
+            }
+            answerGrid[i][j] = clue.answer[k].toUpperCase();
+
             clue.across ? j++ : i++;
         }
     }
@@ -332,6 +415,13 @@ function setUpGrid() {
             }
         }
     }
+
+    const checkLetterButton = document.querySelector("#check-letter");
+    checkLetterButton.addEventListener("click", (e) => {onCheckCurrentCell();});
+    const checkClueButton = document.querySelector("#check-clue");
+    checkClueButton.addEventListener("click", (e) => {onCheckCurrentClue();});
+    const checkPuzzleButton = document.querySelector("#check-puzzle");
+    checkPuzzleButton.addEventListener("click", (e) => {onCheckPuzzle(false);});
 }
 
 // writes in clue location numbers and populates clue text
